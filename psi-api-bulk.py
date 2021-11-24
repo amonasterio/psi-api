@@ -26,13 +26,9 @@ if len(sys.argv) == 4:
             for row in addresses:
                 analiza=row
                 for dispo in dispositivos:
-                    url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url="+analiza+"&key="+api_key+"&strategy="+dispo+"&locale=es"
-                    
+                    url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url="+analiza+"&key="+api_key+"&strategy="+dispo+"&locale=es"                  
                     response = urllib.request.urlopen(url)
-
                     data = json.loads(response.read())  
-                    print(url)
-                    print(data["loadingExperience"]["metrics"].values())
                     psi_dict={}
                     psi_dict['url']=data["lighthouseResult"]["finalUrl"]
                     psi_dict['dispositivo']=dispo
@@ -101,8 +97,7 @@ if len(sys.argv) == 4:
                             psi_dict['third_party_size (KB)']=round(elem.get('transferSize')/1024,2)
                             psi_dict['third_party']=elem.get('requestCount')
                     dct_arr.append(psi_dict)
-                    print(psi_dict)
-                    time.sleep(3)
+                    time.sleep(3) #delay para evitar que nos salga captcha
             df = pd.DataFrame(dct_arr)
             df.to_csv(fichero_salida, index=False)
         except HTTPError as e:
