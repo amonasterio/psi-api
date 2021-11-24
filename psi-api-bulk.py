@@ -1,11 +1,11 @@
-import urllib.request, json, pandas as pd, sys
+import time, urllib.request, json, pandas as pd, sys
 from urllib.error import HTTPError
 
 '''
 Script que devuelve un csv con los datos más importantes tras hacer una llamada a la API de PSI
 Pasamos 3 parámetros:
     API_KEY de PSI para evitar que nos baneen
-    Fichero csv de entrada con todas las URL que queremos analizar. La primera línea debe contener el texo 'url'
+    Fichero csv de entrada con todas las URL que queremos analizar. La primera línea debe contener el texto 'url'
     Fichero csv de salida con todos los datos
 '''
 
@@ -27,19 +27,24 @@ if len(sys.argv) == 4:
                 analiza=row
                 for dispo in dispositivos:
                     url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url="+analiza+"&key="+api_key+"&strategy="+dispo+"&locale=es"
-
+                    
                     response = urllib.request.urlopen(url)
 
                     data = json.loads(response.read())  
-
+                    print(url)
+                    print(data["loadingExperience"]["metrics"].values())
                     psi_dict={}
                     psi_dict['url']=data["lighthouseResult"]["finalUrl"]
                     psi_dict['dispositivo']=dispo
                     psi_dict['score'] = data["lighthouseResult"]["categories"]["performance"]["score"]
                     psi_dict['fcp_chrux (ms)'] =data["loadingExperience"]["metrics"]["FIRST_CONTENTFUL_PAINT_MS"]["percentile"] #into seconds (/1000)
                     psi_dict['fcp_chrux_score'] = data["loadingExperience"]["metrics"]["FIRST_CONTENTFUL_PAINT_MS"]["category"]
-                    psi_dict['fid_chrux (ms)'] = data["loadingExperience"]["metrics"]["FIRST_INPUT_DELAY_MS"]["percentile"] #into seconds (/1000)
-                    psi_dict['fid_chrux_score'] = data["loadingExperience"]["metrics"]["FIRST_INPUT_DELAY_MS"]["category"]
+                    if  data["loadingExperience"]["metrics"].get("FIRST_INPUT_DELAY_MS") != None:
+                        psi_dict['fid_chrux (ms)'] = data["loadingExperience"]["metrics"]["FIRST_INPUT_DELAY_MS"]["percentile"] #into seconds (/1000)
+                        psi_dict['fid_chrux_score'] = data["loadingExperience"]["metrics"]["FIRST_INPUT_DELAY_MS"]["category"]
+                    else:
+                         psi_dict['fid_chrux (ms)'] ="-"
+                         psi_dict['fid_chrux_score'] = "-"
                     psi_dict['lcp_chrux (ms)'] = data["loadingExperience"]["metrics"]["LARGEST_CONTENTFUL_PAINT_MS"]["percentile"]
                     psi_dict['lcp_chrux_score'] = data["loadingExperience"]["metrics"]["LARGEST_CONTENTFUL_PAINT_MS"]["category"]
                     psi_dict['cls_chrux'] = data["loadingExperience"]["metrics"]["CUMULATIVE_LAYOUT_SHIFT_SCORE"]["percentile"]/100
@@ -96,7 +101,8 @@ if len(sys.argv) == 4:
                             psi_dict['third_party_size (KB)']=round(elem.get('transferSize')/1024,2)
                             psi_dict['third_party']=elem.get('requestCount')
                     dct_arr.append(psi_dict)
-
+                    print(psi_dict)
+                    time.sleep(3)
             df = pd.DataFrame(dct_arr)
             df.to_csv(fichero_salida, index=False)
         except HTTPError as e:
@@ -107,7 +113,7 @@ if len(sys.argv) == 4:
         print("No data")
     except pd.errors.ParserError:
         print("Parse error")
-    except Exception:
+    except Exception as e:
         print("Some other exception")
 else:
     print('Número de parámetros incorrecto')
