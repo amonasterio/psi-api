@@ -1,2 +1,4 @@
-bcr-salida.csv
-bulk-psi.csv
+.vscode
+launch.json
+*.csv
+*.csv
